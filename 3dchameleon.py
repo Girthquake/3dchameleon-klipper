@@ -103,7 +103,7 @@ class Chameleon:
     def _set_chameleon(self, value):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(
-            lambda print_time: self.chameleon_pin._set_pin(print_time, value))
+            lambda print_time: self.chameleon_pin.mcu_pin.set_digital(print_time, value))
     
     def _press_chameleon(self, duration):
         self._set_chameleon(True)
@@ -122,18 +122,19 @@ class Chameleon:
     def cmd_UNLOAD_CHAMELEON(self, gcmd):
         tool = gcmd.get_int('TOOL')
         self._set_chameleon(True)
-        if self.filament_sensor_enabled and self.clippy:
-            start = time.time()
-            self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
-            while self.filament_detected[tool]:
-                logging.info(f'3DChameleon Unload Sensor: {self.filament_detected[tool]}')
-                self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
-                if time.time() - start > self.max_unload_time:
-                    self._set_chameleon(False)
-                    self.gcode.run_script_from_command('M117 Unload Failed')
-                    self.gcode.run_script_from_command('PAUSE')
-                    break
-                self.gcode.run_script_from_command('M83\nG92 E0\nG1 E-10 F2400')
+        #if self.filament_sensor_enabled and self.clippy:
+        #    start = time.time()
+        #    self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
+        #    while self.filament_detected[tool]:
+        #        logging.info(f'3DChameleon Unload Sensor: {self.filament_detected[tool]}')
+        #        self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
+        #        if time.time() - start > self.max_unload_time:
+        #           self._set_chameleon(False)
+        #            self.gcode.run_script_from_command('M117 Unload Failed')
+        #            self.gcode.run_script_from_command('PAUSE')
+        #            break
+        #        self.gcode.run_script_from_command('M83\nG92 E0\nG1 E-10 F2400')
+
         if self.clippy:
             self.gcode.run_script_from_command(f'M83\nG92 E0\nG1 E{self.clippy_distance} F2400')
         self.gcode.run_script_from_command(f'G4 P{self.unload_time * 1000}')
@@ -142,19 +143,22 @@ class Chameleon:
     cmd_LOAD_CHAMELEON_help = 'Loads the 3DChameleon until the filament is past the filament runout sensor (when it reads True), and then waits load_time to push the filament into the extruder. Note that if the filament takes more than max_load_time to trigger the filament sensor, then it will abort'
     def cmd_LOAD_CHAMELEON(self, gcmd):
         self._set_chameleon(True)
-        if self.filament_sensor_enabled:
-            start = time.time()
-            self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
-            while not self.filament_detected[-1]:
-                logging.info(f'3DChameleon Load Sensor: {self.filament_detected}')
-                self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
-                if time.time() - start > self.max_load_time:
-                    self._set_chameleon(False)
-                    self.gcode.run_script_from_command('M117 Load Failed')
-                    self.gcode.run_script_from_command('PAUSE')
-                    break
-                self.gcode.run_script_from_command('G4 P250')
+        #if self.filament_sensor_enabled:
+        #    start = time.time()
+        #    self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
+        #    while not self.filament_detected[-1]:
+        #        logging.info(f'3DChameleon Load Sensor: {self.filament_detected}')
+        #        self.gcode.run_script_from_command('UPDATE_CHAMELEON_SENSOR')
+        #        if time.time() - start > self.max_load_time:
+        #            self._set_chameleon(False)
+        #            self.gcode.run_script_from_command('M117 Load Failed')
+        #            self.gcode.run_script_from_command('PAUSE')
+        #            break
+        #        self.gcode.run_script_from_command('G4 P250')
+
+        self.gcode.run_script_from_command(f'G4 P{self.load_time * 1000}')
         self.gcode.run_script_from_command(f'M83\nG92 E0\nG1 E10 F1200')
+	
         self._set_chameleon(False)
     
     cmd_PULSE_CHAMELEON_help = 'Presses the 3DChameleon for the duration of PULSES * pulse_time'
